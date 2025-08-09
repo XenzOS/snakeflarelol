@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>XenzChat - Voice + Text AI Chat</title>
+<title>XenzChat - Video + Voice + Text</title>
 <style>
     body {
         font-family: Arial, sans-serif;
@@ -16,6 +16,18 @@
         margin: 0;
     }
     h1 { margin: 10px 0; }
+    #videoContainer {
+        display: flex;
+        gap: 10px;
+        margin: 10px;
+    }
+    video {
+        width: 300px;
+        height: 225px;
+        background: black;
+        border-radius: 8px;
+        border: 2px solid #444;
+    }
     #chat {
         flex: 1;
         overflow-y: auto;
@@ -46,8 +58,10 @@
     button {
         padding: 10px;
         border: none;
-        background: #4ade80;
         cursor: pointer;
+    }
+    #sendBtn {
+        background: #4ade80;
         border-radius: 0 5px 5px 0;
     }
     #voiceBtn {
@@ -55,15 +69,31 @@
         border-radius: 5px;
         background: #facc15;
     }
+    #videoBtn {
+        margin-left: 5px;
+        border-radius: 5px;
+        background: #3b82f6;
+        color: white;
+    }
 </style>
 </head>
 <body>
 <h1>XenzChat</h1>
+
+<!-- Video area -->
+<div id="videoContainer">
+    <video id="userVideo" autoplay muted></video>
+</div>
+
+<!-- Chat area -->
 <div id="chat"></div>
+
+<!-- Controls -->
 <div id="controls">
     <input type="text" id="userInput" placeholder="Type your message...">
     <button id="sendBtn">Send</button>
     <button id="voiceBtn">🎤</button>
+    <button id="videoBtn">📹</button>
 </div>
 
 <!-- Load PuterJS -->
@@ -73,10 +103,12 @@ const chatBox = document.getElementById('chat');
 const userInput = document.getElementById('userInput');
 const sendBtn = document.getElementById('sendBtn');
 const voiceBtn = document.getElementById('voiceBtn');
-let xenzAI = null; // AI instance
+const videoBtn = document.getElementById('videoBtn');
+const userVideo = document.getElementById('userVideo');
 
-// Load saved conversation or initialize with system prompt
+let xenzAI = null; // AI instance
 let conversation = JSON.parse(localStorage.getItem("chatHistory") || "[]");
+
 if (conversation.length === 0) {
     conversation.push({
         role: "system",
@@ -85,7 +117,7 @@ if (conversation.length === 0) {
     });
 }
 
-// Render saved chat history (skip system prompt)
+// Load previous messages
 conversation.forEach(msg => {
     if (msg.role !== "system") addMessage(msg.content, msg.role);
 });
@@ -111,7 +143,7 @@ async function sendMessage(message) {
 
     try {
         if (!xenzAI) {
-            xenzAI = await puter.ai.create(); // Create AI instance once
+            xenzAI = await puter.ai.create();
         }
 
         const reply = await xenzAI.chat({
@@ -131,138 +163,6 @@ async function sendMessage(message) {
 }
 
 sendBtn.onclick = () => sendMessage(userInput.value);
-userInput.addEventListener('keydown', e => {
-    if (e.key === 'Enter') sendMessage(userInput.value);
-});
-
-// Voice recognition setup
-const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-if (SpeechRecognition) {
-    const recognition = new SpeechRecognition();
-    recognition.lang = 'en-US';
-    recognition.interimResults = false;
-
-    recognition.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        sendMessage(transcript);
-    };
-
-    recognition.onerror = (event) => {
-        addMessage("Voice error: " + event.error, 'ai');
-    };
-
-    voiceBtn.onclick = () => {
-        recognition.start();
-        addMessage("🎤 Listening...", 'ai');
-    };
-} else {
-    voiceBtn.disabled = true;
-    voiceBtn.textContent = "No Mic";
-}
-</script>
-</body>
-</html>
-        margin-bottom: 10px;
-    }
-    input {
-        flex: 1;
-        padding: 10px;
-        border: none;
-        border-radius: 5px 0 0 5px;
-        outline: none;
-    }
-    button {
-        padding: 10px;
-        border: none;
-        background: #4ade80;
-        cursor: pointer;
-        border-radius: 0 5px 5px 0;
-    }
-    #voiceBtn {
-        margin-left: 5px;
-        border-radius: 5px;
-        background: #facc15;
-    }
-</style>
-</head>
-<body>
-<h1>XenzChat</h1>
-<div id="chat"></div>
-<div id="controls">
-    <input type="text" id="userInput" placeholder="Type your message...">
-    <button id="sendBtn">Send</button>
-    <button id="voiceBtn">🎤</button>
-</div>
-
-<!-- Load PuterJS -->
-<script src="https://js.puter.com/v1/"></script>
-<script>
-const chatBox = document.getElementById('chat');
-const userInput = document.getElementById('userInput');
-const sendBtn = document.getElementById('sendBtn');
-const voiceBtn = document.getElementById('voiceBtn');
-
-// Load saved conversation from localStorage or create with system prompt
-let conversation = JSON.parse(localStorage.getItem("chatHistory") || "[]");
-
-// Ensure the first message defines XenzChat's identity
-if (conversation.length === 0) {
-    conversation.push({
-        role: "system",
-        content: "You are XenzChat, a helpful, friendly, and knowledgeable AI assistant. " +
-                 "Never refer to yourself as ChatGPT or any other name — only XenzChat."
-    });
-}
-
-// Render saved chat history (skip system prompt)
-conversation.forEach(msg => {
-    if (msg.role !== "system") addMessage(msg.content, msg.role);
-});
-
-// Function to add messages to chat
-function addMessage(text, sender) {
-    const div = document.createElement('div');
-    div.classList.add('msg', sender);
-    div.textContent = `${sender === 'user' ? 'You' : 'XenzChat'}: ${text}`;
-    chatBox.appendChild(div);
-    chatBox.scrollTop = chatBox.scrollHeight;
-}
-
-// Save conversation to localStorage
-function saveConversation() {
-    localStorage.setItem("chatHistory", JSON.stringify(conversation));
-}
-
-// Send message to XenzChat AI with memory
-async function sendMessage(message) {
-    if (!message.trim()) return;
-    addMessage(message, 'user');
-    conversation.push({ role: 'user', content: message });
-    saveConversation();
-    userInput.value = '';
-
-    try {
-        const reply = await puter.ai.chat({
-            messages: conversation
-        });
-
-        addMessage(reply, 'ai');
-        conversation.push({ role: 'assistant', content: reply });
-        saveConversation();
-
-        // Speak reply
-        const utterance = new SpeechSynthesisUtterance(reply);
-        speechSynthesis.speak(utterance);
-
-    } catch (err) {
-        addMessage("Error: " + err.message, 'ai');
-    }
-}
-
-// Send on button click
-sendBtn.onclick = () => sendMessage(userInput.value);
-
-// Send on Enter
 userInput.addEventListener('keydown', e => {
     if (e.key === 'Enter') sendMessage(userInput.value);
 });
@@ -291,6 +191,26 @@ if (SpeechRecognition) {
     voiceBtn.disabled = true;
     voiceBtn.textContent = "No Mic";
 }
+
+// Video start/stop
+let videoStream = null;
+videoBtn.onclick = async () => {
+    if (!videoStream) {
+        try {
+            videoStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+            userVideo.srcObject = videoStream;
+            videoBtn.textContent = "⏹";
+        } catch (err) {
+            addMessage("Video error: " + err.message, 'ai');
+        }
+    } else {
+        let tracks = videoStream.getTracks();
+        tracks.forEach(track => track.stop());
+        userVideo.srcObject = null;
+        videoStream = null;
+        videoBtn.textContent = "📹";
+    }
+};
 </script>
 </body>
 </html>
